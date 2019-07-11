@@ -42,3 +42,15 @@ class RandomWithSeed(Random):
 
     def __repr__(self):
         return u"RandomWithSeed(%s)" % (self.seed,)
+
+
+class FlatList(list):
+    """A subclass to assist with printing flat lists differently."""
+    def __new__(cls, _iterable):
+        return super(FlatList, cls).__new__(cls, _iterable)
+
+
+class FlatTuple(tuple):
+    """A subclass to assist with printing flat tuples differently."""
+    def __new__(cls, _iterable):
+        return super(FlatTuple, cls).__new__(cls, _iterable)

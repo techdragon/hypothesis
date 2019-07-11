@@ -20,6 +20,9 @@ from __future__ import absolute_import, division, print_function
 import hypothesis.internal.conjecture.utils as d
 from hypothesis.internal.compat import bit_length, hrange
 from hypothesis.searchstrategy.strategies import SearchStrategy, filter_not_satisfied
+from hypothesis.internal.compat import abc
+from hypothesis.types import FlatList
+from hypothesis.types import FlatTuple
 
 
 class BoolStrategy(SearchStrategy):
@@ -75,6 +78,11 @@ class SampledFromStrategy(SearchStrategy):
 
     def __init__(self, elements):
         SearchStrategy.__init__(self)
+        if not any(isinstance(i, abc.Sequence) for i in elements):
+            if isinstance(elements, tuple):
+                elements = FlatTuple(elements)
+            elif isinstance(elements, list):
+                elements = FlatList(elements)
         self.elements = d.check_sample(elements, "sampled_from")
         assert self.elements
 

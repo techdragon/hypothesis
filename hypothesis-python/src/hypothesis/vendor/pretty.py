@@ -84,6 +84,7 @@ from contextlib import contextmanager
 from io import StringIO
 
 from hypothesis.internal.compat import PY3, cast_unicode, get_stream_enc, string_types
+from hypothesis.types import FlatList, FlatTuple
 
 __all__ = [
     "pretty",
@@ -554,7 +555,7 @@ def _default_pprint(obj, p, cycle):
 def _seq_pprinter_factory(start, end, basetype):
     """Factory that returns a pprint function useful for sequences.
 
-    Used by the default pprint for tuples, dicts, and lists.
+    Used by the default pprint for tuples and lists.
 
     """
 
@@ -576,6 +577,43 @@ def _seq_pprinter_factory(start, end, basetype):
             if idx:
                 p.text(",")
                 p.breakable()
+            p.pretty(x)
+        if len(obj) == 1 and type(obj) is tuple:
+            # Special case for 1-item tuples.
+            p.text(",")
+        p.end_group(step, end)
+
+    return inner
+
+
+def _flat_seq_pprinter_factory(start, end, basetype):
+    """Factory that returns a pprint function useful for flat sequences.
+
+    Used for printing flat sequences as a a special case
+    option for the SampledFromStrategy to control its print output
+    for tuples and lists.
+
+    """
+
+    def inner(obj, p, cycle):
+        typ = type(obj)
+        if (
+            basetype is not None
+            and typ is not basetype
+            and typ.__repr__ != basetype.__repr__
+        ):
+            # If the subclass provides its own repr, use it instead.
+            return p.text(typ.__repr__(obj))
+
+        if cycle:
+            return p.text(start + "..." + end)
+        step = len(start)
+        p.begin_group(step, start)
+        for idx, x in p._enumerate(obj):
+            if idx:
+                p.text(",")
+                # TODO: Can I break this after a certain number of items or at the max_length?
+                # p.breakable()
             p.pretty(x)
         if len(obj) == 1 and type(obj) is tuple:
             # Special case for 1-item tuples.
@@ -793,7 +831,9 @@ _type_pprinters = {
     float: _repr_pprint,
     str: _repr_pprint,
     tuple: _seq_pprinter_factory("(", ")", tuple),
+    FlatTuple: _flat_seq_pprinter_factory("(", ")", tuple),
     list: _seq_pprinter_factory("[", "]", list),
+    FlatList: _flat_seq_pprinter_factory("[", "]", list),
     dict: _dict_pprinter_factory("{", "}", dict),
     set: _set_pprinter_factory("{", "}", set),
     frozenset: _set_pprinter_factory("frozenset({", "})", frozenset),
